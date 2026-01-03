@@ -377,22 +377,7 @@ async function autoFillIfEmpty() {
     }
     const userInfo = await getTaskMetadata();
     const { questionList, type } = getCurrentPageQuestions();
-    let isFilled = true;
-
-    switch (type) {
-        case "text":
-            // Check if ANY input has a value
-            isFilled = questionList.some(group => group.some(item => $(item.element).val()));
-            break;
-        case "choose":
-            // Check if ANY radio button is checked
-            isFilled = questionList.some(group => group.some(item => $(item.element).find("input").filter(":checked").is(":checked")));
-            break;
-    }
-
-    if (!isFilled) {
-        fetchAndFillAnswers(userInfo, questionList, type);
-    }
+    fetchAndFillAnswers(userInfo, questionList, type);
 }
 
 /**
@@ -599,7 +584,7 @@ async function handleVocabFinish() {
 /**
  * Resets the task by clicking Undo buttons and handling popups.
  */
-async function resetTask() {
+async function submitTask() {
     try {
         await handlePopupsAndErrors();
         (await waitForElement(".fa-check")).click();
@@ -681,9 +666,9 @@ async function processVocabularyTask() {
 async function executeAutoSolveSequence() {
     try {
         autoFillIfEmpty();
-        await resetTask();
+        await submitTask();
         try {
-            await waitForElement("#toast-container > .toast-success", 5000);
+            await waitForElement("#toast-container > .toast-success", 10000);
             console.log("Task completed successfully");
             return;
         } catch {
@@ -709,7 +694,7 @@ async function executeAutoSolveSequence() {
             $(this).click();
         });
 
-        await resetTask();
+        await submitTask();
         await clickRevealAnswerButton();
 
         const { inputImageObjects, result } = await solveImageMatchTask();
@@ -730,7 +715,7 @@ async function executeAutoSolveSequence() {
             }
         });
 
-        await resetTask();
+        await submitTask();
 
     } catch { }
 }
