@@ -1677,6 +1677,7 @@ html {
 
 .input-sm {
   height: 2rem;
+  width: 7rem;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
   font-size: 0.875rem;
@@ -1962,6 +1963,7 @@ html {
 
 .items-center {
   align-items: center;
+  column-gap: 5px;
 }
 
 .justify-between {
@@ -2354,4 +2356,129 @@ body {
 
 .text-primary {
   color: hsl(var(--p));
+}
+/* Console Redesign */
+#crack-console {
+    background-color: #0c0c0c;
+    color: #4af626;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    height: 250px;
+    overflow-y: auto;
+    border: 1px solid #333;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+    white-space: pre-wrap;
+    line-height: 1.5;
+    text-shadow: 0 0 2px #4af626;
+}
+
+#crack-console::-webkit-scrollbar {
+    width: 6px;
+}
+
+#crack-console::-webkit-scrollbar-track {
+    background: #111;
+}
+
+#crack-console::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+}
+
+#crack-console::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Config Redesign */
+.eop-config-panel {
+    background: #0f0f0f;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.eop-label {
+    color: #888;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+.eop-radio-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.eop-radio {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #555;
+    border-radius: 50%;
+    background: #222;
+    cursor: pointer;
+    position: relative;
+    margin-right: 4px;
+}
+
+.eop-radio:checked {
+    border-color: #4af626;
+    box-shadow: 0 0 5px #4af626;
+}
+
+.eop-radio:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: #4af626;
+    border-radius: 50%;
+}
+
+.eop-radio-label {
+    color: #ccc;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.eop-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.eop-input {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    width: 80px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.eop-input:focus {
+    border-color: #4af626;
+    box-shadow: 0 0 5px rgba(74, 246, 38, 0.3);
+}
+.eop-divider {
+    color: #555;
+    font-weight: bold;
 }

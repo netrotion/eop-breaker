@@ -23,6 +23,8 @@ import {
 import {
     s as KEY_TIMER_SECONDS,
     a as KEY_AUTO_STATUS,
+    m as KEY_MIN_TIMER_SECONDS,
+    M as KEY_MAX_TIMER_SECONDS,
     initPremiumState
 } from "./constant.js";
 // External libraries
@@ -724,7 +726,9 @@ async function executeAutoSolveSequence() {
 let timerSettings = {
     status: true,
     currentSecond: 30,
-    secondEOP: 30
+    secondEOP: 30, // Deprecated but kept for compatibility
+    minSecondEOP: 30,
+    maxSecondEOP: 30
 };
 let timerIntervalId = null;
 let timerCallback = null;
@@ -735,10 +739,21 @@ function getTimerState() {
 
 async function updateTimerSettings(data) {
     Object.assign(timerSettings, data);
-    if (data.secondEOP !== undefined) {
-        timerSettings.currentSecond = data.secondEOP;
+
+    // If only min/max are updated, or if secondEOP is updated (legacy), we need to handle it.
+    // Ideally the popup sends the whole object.
+
+    // Validate min <= max
+    if (timerSettings.minSecondEOP > timerSettings.maxSecondEOP) {
+        timerSettings.minSecondEOP = timerSettings.maxSecondEOP;
     }
-    await Promise.all([saveToChromeStorage(KEY_TIMER_SECONDS, timerSettings.secondEOP), saveToChromeStorage(KEY_AUTO_STATUS, timerSettings.status)]);
+
+    await Promise.all([
+        saveToChromeStorage(KEY_TIMER_SECONDS, timerSettings.secondEOP), // Keep for legacy
+        saveToChromeStorage(KEY_AUTO_STATUS, timerSettings.status),
+        saveToChromeStorage(KEY_MIN_TIMER_SECONDS, timerSettings.minSecondEOP),
+        saveToChromeStorage(KEY_MAX_TIMER_SECONDS, timerSettings.maxSecondEOP)
+    ]);
     if (timerSettings.status) {
         startTimer();
     } else {
@@ -746,16 +761,24 @@ async function updateTimerSettings(data) {
     }
 }
 
-function setTimerState(status, secondEOP) {
+function setTimerState(status, secondEOP, minSecondEOP, maxSecondEOP) {
     Object.assign(timerSettings, {
         status: status,
         secondEOP: secondEOP,
-        currentSecond: secondEOP
+        minSecondEOP: minSecondEOP || secondEOP,
+        maxSecondEOP: maxSecondEOP || secondEOP,
+        currentSecond: minSecondEOP ? Math.floor(Math.random() * (maxSecondEOP - minSecondEOP + 1)) + minSecondEOP : secondEOP
     });
 }
 
 function setTimerCallback(callback) {
     timerCallback = callback;
+}
+
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**
@@ -767,7 +790,11 @@ async function timerTick() {
     if (timerSettings.currentSecond > 1) {
         timerSettings.currentSecond--;
     } else {
-        timerSettings.currentSecond = timerSettings.secondEOP;
+        // Randomize delay
+        const min = timerSettings.minSecondEOP || 30;
+        const max = timerSettings.maxSecondEOP || 30;
+        timerSettings.currentSecond = getRandomInt(min, max);
+
         if (timerCallback) await timerCallback();
     }
 

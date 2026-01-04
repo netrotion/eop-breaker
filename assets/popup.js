@@ -1,25 +1,25 @@
 import { s as wn } from "./chrome-utils.js";
 import "./constant.js";
-import { remain_puid, initPremiumState } from "./constant.js";
+import { remain_puid, initPremiumState, checking_premium_uid } from "./constant.js";
+import { LogQueue } from "./log-queue.js";
 import {
     defineComponent,
     ref,
-    reactive,
     onMounted,
     onUnmounted,
+    createApp,
     openBlock,
     createElementBlock,
     createElementVNode,
     Fragment,
     renderList,
-    normalizeClass,
-    toDisplayString,
     withDirectives,
-    vModelCheckbox,
     vModelText,
+    toDisplayString,
+    reactive,
+    normalizeClass,
     createStaticVNode,
-    createBlock,
-    createApp
+    createBlock
 } from "./vendor.js";
 
 // Component Definition
@@ -33,13 +33,31 @@ const HomePage = defineComponent({
         // Scan State
         const scanning = ref(false);
         const consoleLog = ref("");
+        const scanOptions = reactive({
+            mode: "list", // 'list' or 'range'
+            startId: "",
+            endId: "",
+            threads: 50
+        });
+
+        const scanStats = ref({
+            rps: 0,
+            checked: 0,
+            total: 0,
+            percent: 0
+        });
+
+        // Dedicated ref for UI reactivity to ensure immediate updates
+        const scanMode = ref("list");
 
         // Auto State
         const activeTab = ref("auto");
         const timerSettings = reactive({
             status: true,
             currentSecond: 30,
-            secondEOP: 30
+            secondEOP: 30,
+            minSecondEOP: 30,
+            maxSecondEOP: 30
         });
 
         // Initialize Data
@@ -81,43 +99,109 @@ const HomePage = defineComponent({
 
 
         // --- Logic Functions ---
-        const bruteForceScan = async () => {
-            consoleLog.value = "$ Starting bruteforce\n";
-            let index = 0;
-            const loop = async () => {
-                if (!scanning.value) return;
-                if (index >= remain_puid.length) {
-                    consoleLog.value += `$ Finished scanning, no premium UID found.\n`;
-                    scanning.value = false;
-                    return;
+        let worker = null;
+        let queue = new LogQueue();
+        const WORKER_URL = new URL('./scan.worker.js', import.meta.url);
+
+        // Initialize display loop
+        // Initialize display loop
+        let logLines = []; // Persistent buffer for performance
+        const processLogs = () => {
+            if (!queue.isEmpty()) {
+                const newContent = queue.dequeueAll();
+                if (!newContent) return;
+
+                // Efficiently append and truncate
+                const newLines = newContent.split('\n');
+                // Filter out empty lines if needed, but keeping raw for now
+
+                // Push new lines
+                for (let i = 0; i < newLines.length; i++) {
+                    if (newLines[i] !== "") logLines.push(newLines[i]);
                 }
-                const currentUid = remain_puid[index];
-                try {
-                    const res = await fetch(`https://tool-eop-v3-backend-wszmtm2dda-uc.a.run.app/task-answer/answers`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ major: "1", unit: "0", task: "1", userId: currentUid })
-                    });
 
-                    const isPremium = res.status === 200;
-                    consoleLog.value += `[${currentUid}] ${isPremium ? "Role : *Premium*" : "Role : Normal"}\n`;
-                    if (isPremium) {
-                        consoleLog.value += `$ Found 1 premium UID, exiting...\n$ UID changed, please reopen extension to take effect.\n`;
-                        chrome.storage.local.set({ "eop-puid": currentUid });
-                        return;
-                    }
-                    const el = document.getElementById("crack-console");
-                    if (el) el.scrollTop = el.scrollHeight;
+                // Truncate to last 300 lines
+                if (logLines.length > 300) {
+                    logLines = logLines.slice(-300);
+                }
 
-                    index++;
-                    await new Promise(r => setTimeout(r, 0));
-                    loop();
-                } catch (err) {
-                    consoleLog.value += `[${currentUid}] connection error: ${err.message}\n`;
+                consoleLog.value = logLines.join('\n');
+
+                const el = document.getElementById("crack-console");
+                if (el) el.scrollTop = el.scrollHeight;
+            }
+        };
+        // Throttle log updates to 100ms (10 FPS) to prevent UI blocking
+        setInterval(processLogs, 100);
+
+        const initWorker = () => {
+            if (worker) return;
+            worker = new Worker(WORKER_URL, { type: "module" });
+
+            worker.onmessage = (e) => {
+                const { type, content, uid, stats } = e.data;
+
+                if (type === "log") {
+                    queue.enqueue(content);
+                }
+                else if (type === "stats") {
+                    // Manual DOM update for performance and reliability
+                    const rpsEl = document.getElementById('stat-rps');
+                    const percentEl = document.getElementById('stat-percent');
+                    const idEl = document.getElementById('stat-id');
+
+                    if (rpsEl) rpsEl.textContent = stats.rps;
+                    if (percentEl) percentEl.textContent = stats.percent + "%";
+                    if (idEl) idEl.textContent = stats.checked || 0;
+
+                    // Keep reactive state sync just in case
+                    Object.assign(scanStats.value, stats);
+                }
+                else if (type === "found") {
+                    queue.enqueue(content);
+                    // Handle found logic
+                    chrome.storage.local.set({ "eop-puid": uid });
+                    scanning.value = false;
+                    terminateWorker(); // Force stop
+                }
+                else if (type === "finished") {
                     scanning.value = false;
                 }
             };
-            loop();
+
+            worker.onerror = (err) => {
+                console.error("Worker error:", err);
+                queue.enqueue(`$ Worker Error: ${err.message}\n`);
+                scanning.value = false;
+            };
+        };
+
+        const terminateWorker = () => {
+            if (worker) {
+                worker.terminate();
+                worker = null;
+            }
+        };
+
+        const stopScan = () => {
+            scanning.value = false;
+            // Terminate immediately to stop all pending logs
+            terminateWorker();
+            queue.enqueue("$ Stop\n");
+        };
+
+        const bruteForceScan = async () => {
+            scanning.value = true; // Set scanning true immediately
+            initWorker();
+            worker.postMessage({
+                type: "START",
+                payload: {
+                    mode: scanOptions.mode,
+                    startId: scanOptions.startId,
+                    endId: scanOptions.endId,
+                    threads: scanOptions.threads
+                }
+            });
         };
 
         const oneHit = async () => {
@@ -183,23 +267,39 @@ const HomePage = defineComponent({
                         ]),
                         createElementVNode("div", { class: "flex items-center justify-between mb-3" }, [
                             createElementVNode("span", { class: "text-sm font-medium text-neutral-700" }, "Trạng thái tự động:"),
-                            withDirectives(createElementVNode("input", {
-                                "onUpdate:modelValue": $event => timerSettings.status = $event,
+                            createElementVNode("input", {
                                 type: "checkbox",
                                 class: "toggle toggle-primary toggle-sm",
-                                onChange: updateTimer
-                            }, null, 544), [[vModelCheckbox, timerSettings.status]])
+                                checked: timerSettings.status,
+                                onChange: ($event) => {
+                                    timerSettings.status = $event.target.checked;
+                                    updateTimer();
+                                }
+                            }, null, 8, ["checked"])
                         ]),
                         createElementVNode("div", { class: "flex items-center justify-between" }, [
-                            createElementVNode("label", { for: "inputSecond", class: "text-sm text-neutral-600" }, "Độ trễ (giây):"),
-                            withDirectives(createElementVNode("input", {
-                                "onUpdate:modelValue": $event => timerSettings.secondEOP = $event,
-                                type: "number",
-                                min: "5",
-                                class: "input input-bordered input-sm w-24 bg-neutral-100 focus:border-primary-400",
-                                id: "inputSecond",
-                                onInput: updateTimer
-                            }, null, 544), [[vModelText, timerSettings.secondEOP, void 0, { number: false }]])
+                            createElementVNode("label", { class: "text-sm text-neutral-600 whitespace-nowrap mr-2" }, "Độ trễ (s):"),
+                            createElementVNode("div", { class: "flex items-center gap-2" }, [
+                                withDirectives(createElementVNode("input", {
+                                    "onUpdate:modelValue": $event => timerSettings.minSecondEOP = $event,
+                                    type: "number",
+                                    min: "5",
+                                    class: "input input-bordered input-sm w-12 bg-neutral-100 focus:border-primary-400 text-center px-1",
+                                    placeholder: "Min",
+                                    onInput: updateTimer
+                                }, null, 544), [[vModelText, timerSettings.minSecondEOP, void 0, { number: false }]]),
+
+                                createElementVNode("span", { class: "text-neutral-400 font-bold" }, "-"),
+
+                                withDirectives(createElementVNode("input", {
+                                    "onUpdate:modelValue": $event => timerSettings.maxSecondEOP = $event,
+                                    type: "number",
+                                    min: "5",
+                                    class: "input input-bordered input-sm w-12 bg-neutral-100 focus:border-primary-400 text-center px-1",
+                                    placeholder: "Max",
+                                    onInput: updateTimer
+                                }, null, 544), [[vModelText, timerSettings.maxSecondEOP, void 0, { number: false }]])
+                            ])
                         ])
                     ])) :
 
@@ -209,16 +309,149 @@ const HomePage = defineComponent({
                         ])) :
 
                             // Cracked Tab
-                            activeTab.value === "cracked" ? (openBlock(), createElementBlock("div", { key: 2, class: "font-bold bg-black text-white" }, [
-                                createElementVNode("div", { id: "crack-console", class: "console", textContent: consoleLog.value }, null, 8, ["textContent"]),
+                            activeTab.value === "cracked" ? (openBlock(), createElementBlock("div", { key: 2, class: "font-bold bg-black text-white p-2 rounded" }, [
+                                // Control Panel
+                                createElementVNode("div", { class: "eop-config-panel" }, [
+                                    createElementVNode("div", { class: "eop-radio-group" }, [
+                                        createElementVNode("span", { class: "eop-label" }, "Mode"),
+                                        createElementVNode("label", { class: "eop-radio-label" }, [
+                                            createElementVNode("input", {
+                                                type: "radio",
+                                                name: "scanmode",
+                                                value: "list",
+                                                checked: scanMode.value === 'list',
+                                                onClick: () => {
+                                                    scanMode.value = 'list';
+                                                    scanOptions.mode = 'list';
+                                                    const el = document.getElementById('range-ui-container');
+                                                    if (el) el.style.display = 'none';
+                                                },
+                                                class: "eop-radio"
+                                            }),
+                                            createElementVNode("span", {}, "LIST")
+                                        ]),
+                                        createElementVNode("label", { class: "eop-radio-label" }, [
+                                            createElementVNode("input", {
+                                                type: "radio",
+                                                name: "scanmode",
+                                                value: "range",
+                                                checked: scanMode.value === 'range',
+                                                onClick: () => {
+                                                    scanMode.value = 'range';
+                                                    scanOptions.mode = 'range';
+                                                    const el = document.getElementById('range-ui-container');
+                                                    if (el) el.style.display = 'flex';
+                                                },
+                                                class: "eop-radio"
+                                            }),
+                                            createElementVNode("span", {}, "RANGE")
+                                        ])
+                                    ]),
+
+                                    // Range Inputs
+                                    // Range Inputs
+                                    createElementVNode("div", {
+                                        id: "range-ui-container",
+                                        key: "range-ui",
+                                        class: "eop-input-group",
+                                        style: { display: scanMode.value === 'range' ? 'flex' : 'none' }
+                                    }, [
+                                        createElementVNode("span", { class: "eop-label" }, "Range"),
+                                        withDirectives(createElementVNode("input", {
+                                            "onUpdate:modelValue": $event => scanOptions.startId = $event,
+                                            type: "number",
+                                            class: "eop-input",
+                                            placeholder: "START"
+                                        }, null, 512), [[vModelText, scanOptions.startId]]),
+                                        createElementVNode("span", { class: "eop-divider" }, "-"),
+                                        withDirectives(createElementVNode("input", {
+                                            "onUpdate:modelValue": $event => scanOptions.endId = $event,
+                                            type: "number",
+                                            class: "eop-input",
+                                            placeholder: "END"
+                                        }, null, 512), [[vModelText, scanOptions.endId]])
+                                    ]),
+
+                                    // Thread Input
+                                    createElementVNode("div", { key: "thread-input", class: "eop-input-group" }, [
+                                        createElementVNode("span", { class: "eop-label" }, "Threads"),
+                                        withDirectives(createElementVNode("input", {
+                                            "onUpdate:modelValue": $event => scanOptions.threads = $event,
+                                            type: "number",
+                                            class: "eop-input",
+                                            placeholder: "50",
+                                            min: "1",
+                                            max: "5000"
+                                        }, null, 512), [[vModelText, scanOptions.threads]])
+                                    ])
+                                ]),
+
+                                createElementVNode("div", {
+                                    style: {
+                                        display: "grid",
+                                        gridTemplateColumns: "1fr 1fr 1fr", // 3 columns
+                                        gap: "8px",
+                                        marginBottom: "10px",
+                                        padding: "8px"
+                                    }
+                                }, [
+                                    // RPS Card
+                                    createElementVNode("div", {
+                                        style: {
+                                            background: "#1e1e1e",
+                                            padding: "8px",
+                                            borderRadius: "6px",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            border: "1px solid #333"
+                                        }
+                                    }, [
+                                        createElementVNode("span", { style: { fontSize: "10px", color: "#888", marginBottom: "2px" } }, "RPS"),
+                                        createElementVNode("span", { id: "stat-rps", style: { fontSize: "14px", fontWeight: "bold", color: "#4ade80" } }, toDisplayString(scanStats.value.rps))
+                                    ]),
+
+                                    // Percent Card
+                                    createElementVNode("div", {
+                                        style: {
+                                            background: "#1e1e1e",
+                                            padding: "8px",
+                                            borderRadius: "6px",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            border: "1px solid #333"
+                                        }
+                                    }, [
+                                        createElementVNode("span", { style: { fontSize: "10px", color: "#888", marginBottom: "2px" } }, "PROGRESS"),
+                                        createElementVNode("span", { id: "stat-percent", style: { fontSize: "14px", fontWeight: "bold", color: "#60a5fa" } }, toDisplayString(scanStats.value.percent) + "%")
+                                    ]),
+
+                                    // Checked Count Card
+                                    createElementVNode("div", {
+                                        style: {
+                                            background: "#1e1e1e",
+                                            padding: "8px",
+                                            borderRadius: "6px",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            border: "1px solid #333"
+                                        }
+                                    }, [
+                                        createElementVNode("span", { style: { fontSize: "10px", color: "#888", marginBottom: "2px" } }, "CHECKED"),
+                                        createElementVNode("span", { id: "stat-id", style: { fontSize: "14px", fontWeight: "bold", color: "#fca5a5" } }, toDisplayString(scanStats.value.checked || 0))
+                                    ])
+                                ]),
+
+                                createElementVNode("div", { id: "crack-console", class: "console mb-2", textContent: consoleLog.value }, null, 8, ["textContent"]),
                                 createElementVNode("button", {
                                     onClick: () => {
                                         if (!scanning.value) {
                                             scanning.value = true;
-                                            bruteForceScan();
+                                            bruteForceScan({ ...scanOptions });
                                         } else {
-                                            scanning.value = false;
-                                            consoleLog.value += "$ Stop\n";
+                                            stopScan();
                                         }
                                     },
                                     class: "btn btn-warning btn-sm text-black w-full"
