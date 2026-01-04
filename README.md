@@ -13,7 +13,8 @@
 ---
 
 ## 📖 Giới Thiệu
-**Tool EOP - Cracked** là tiện ích mở rộng mạnh mẽ được phát triển bởi **lvh - hngl**, hỗ trợ tự động hóa việc học tập và khai thác các tính năng trên hệ thống `eop.edu.vn`. Phiên bản mới mang đến giao diện trực quan và hiệu năng vượt trội.
+**Tool EOP - Cracked** là phiên bản **đã được bẻ khóa (cracked) và nâng cấp** từ tiện ích gốc.
+Phiên bản này được phát triển thêm bởi **lvh - hngl**, mang đến khả năng mở khóa các tính năng trả phí, tối ưu hóa hệ thống `eop.edu.vn` và bổ sung nhiều công cụ mạnh mẽ khác.
 
 ## ✨ Tính Năng Nổi Bật
 
