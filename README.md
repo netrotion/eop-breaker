@@ -4,7 +4,7 @@
 ### *Giải pháp tự động hóa tối ưu cho EOP*
 **Current Version: 6.9**
 
-[![Version](https://img.shields.io/badge/version-6.9-blue.svg?style=flat-square)](https://github.com/netrotion)
+[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg?style=flat-square)](https://github.com/netrotion)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=flat-square)](https://github.com/netrotion)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
@@ -93,9 +93,9 @@ Nếu bạn thấy tool hữu ích, hãy ủng hộ tác giả!
 
 | Kênh | Liên Kết |
 | :--- | :--- |
-| **Facebook** | [Nguyễn Hùng (hngl2808)](https://www.facebook.com/hngl2808/) |
+| **Facebook** | [Lê Hùng (hngl2808)](https://www.facebook.com/hngl2808/) |
 | **GitHub** | [Netrotion](https://github.com/netrotion) |
-| **Donate** | **MB Bank: 034537028 - LE VIET HUNG** |
+| **Donate** | **MB Bank: 0345370248 - LE VIET HUNG** |
 
 </div>
 
