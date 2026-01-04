@@ -2,7 +2,7 @@
 
 # 🛠️ Tool EOP - Cracked
 ### *Giải pháp tự động hóa tối ưu cho EOP*
-**Current Version: 6.9**
+**Current Version: 1.0.2**
 
 [![Version](https://img.shields.io/badge/version-1.0.2-blue.svg?style=flat-square)](https://github.com/netrotion)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=flat-square)](https://github.com/netrotion)

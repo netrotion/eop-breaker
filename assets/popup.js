@@ -465,7 +465,7 @@ const HomePage = defineComponent({
                         <h2 class="text-base font-bold text-secondary-500 mb-2">Chú ý</h2>
                         <ul class="list-disc list-inside space-y-2">
                             <li class="text-neutral-700 text-sm"> Vai trò: <span class="font-bold text-accent-blue-500">${userInfo.ROLE}</span></li>
-                            <li class="text-neutral-700 text-sm"><strong>Donate:</strong> 034537028 MB - LE VIET HUNG</li>
+                            <li class="text-neutral-700 text-sm"><strong>Donate:</strong> 0345370248 MB - LE VIET HUNG</li>
                             <li class="text-neutral-700 text-sm"><strong>Miễn phí sử dụng</strong></li>
                             <li class="text-neutral-700 text-sm"><strong>Liên hệ</strong>
                                 <a class="btn btn-circle btn-outline btn-xs bg-primary hover:bg-primary-600 text-white ml-1" href="https://www.facebook.com/hngl2808/" target="_blank"><i class="fab fa-facebook"></i></a>
