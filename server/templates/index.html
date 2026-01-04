@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Server Dashboard</h1>
+            <button class="btn" onclick="openDownloadModal()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download DB
+            </button>
+        </header>
+
+        {% if error %}
+        <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.majors }}</div>
+                <div class="stat-label">Majors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.units }}</div>
+                <div class="stat-label">Units</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.tasks }}</div>
+                <div class="stat-label">Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.answers }}</div>
+                <div class="stat-label">Total Answers</div>
+            </div>
+        </section>
+
+        <section class="data-explorer">
+            <div class="section-title" style="padding: 1rem 1rem 0;">Data Explorer</div>
+            <div class="tree-view">
+                {% for major in tree %}
+                <details>
+                    <summary>{{ major.name }}</summary>
+                    {% for unit in major.units %}
+                    <details>
+                        <summary>{{ unit.name }}</summary>
+                        {% for task in unit.tasks %}
+                        <details>
+                            <summary>{{ task.name }}</summary>
+                            <div class="table-container">
+                                {% if task.answers %}
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Question</th>
+                                            <th>Answer</th>
+                                            <th>Option</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for answer in task.answers %}
+                                        <tr>
+                                            <td>{{ answer.questionNumber }}</td>
+                                            <td>{{ answer.question }}</td>
+                                            <td>{{ answer.answer }}</td>
+                                            <td>{{ answer.option }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <div style="padding: 1rem; color: #64748b;">No answers logged for this task.</div>
+                                {% endif %}
+                            </div>
+                        </details>
+                        {% endfor %}
+                    </details>
+                    {% endfor %}
+                </details>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <div class="modal" id="downloadModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Download Database</h3>
+            <form action="/download-db" method="POST">
+                <div class="input-group">
+                    <label for="password" style="color: #94a3b8; font-size: 0.875rem;">Enter Admin Password</label>
+                    <input type="password" id="password" name="password" class="input-field" required placeholder="hint: admin123">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeDownloadModal()">Cancel</button>
+                    <button type="submit" class="btn">Download</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openDownloadModal() {
+            document.getElementById('downloadModal').classList.add('active');
+        }
+
+        function closeDownloadModal() {
+            document.getElementById('downloadModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('downloadModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDownloadModal();
+            }
+        });
+    </script>
+</body>
+</html>
