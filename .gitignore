@@ -1,10 +1,4 @@
-# Python
-*.py
-__pycache__/
-*.pyc
 
-# Server
-server/
 venv/
 .env
 db.json

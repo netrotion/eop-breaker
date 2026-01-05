@@ -32,18 +32,19 @@
       "matches": [
         "*://eop.edu.vn/study/task/*",
         "*://eop.edu.vn/task/*",
-        "*://eop.edu.vn/study/course/*"
+        "*://eop.edu.vn/study/course/*",
+        "*://eop.edu.vn/study/unit/*"
       ],
       "run_at": "document_start"
     }
   ],
   "permissions": [
+    "cookies",
     "storage",
     "tabs"
   ],
   "host_permissions": [
-    "https://tool-eop-v3-backend-wszmtm2dda-uc.a.run.app/*",
-    "https://yddkqpr2xf.execute-api.ap-southeast-1.amazonaws.com/v1/*"
+    "<all_urls>"
   ],
   "web_accessible_resources": [
     {
@@ -56,6 +57,7 @@
         "assets/message-util.js",
         "assets/chrome-utils.js",
         "assets/constant.js",
+        "assets/scan-utils.js",
         "assets/content.js",
         "assets/background.js",
         "assets/popup.js"

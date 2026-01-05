@@ -1,128 +1,1508 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        if (window.innerWidth <= 768) {
+            window.location.replace("/mobile");
+        }
+    </script>
 </head>
+
 <body>
     <div class="container">
         <header>
             <h1>Server Dashboard</h1>
-            <button class="btn" onclick="openDownloadModal()">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                Download DB
-            </button>
+            <div class="auth-controls">
+                <!-- Notifications -->
+                <div class="notification-container">
+                    <button class="btn-icon" onclick="toggleNotifications()">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                            </path>
+                        </svg>
+                        <div id="notif-badge" class="notif-badge" style="display: none;">0</div>
+                    </button>
+                    <div class="notif-dropdown" id="notif-dropdown">
+                        <div style="padding: 1rem; color: #94a3b8; text-align: center;">No notifications</div>
+                    </div>
+                </div>
+
+                <!-- Admin Login -->
+                <button class="btn-icon" onclick="openLoginModal()" id="login-btn" title="Admin Login">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                        </path>
+                    </svg>
+                </button>
+
+                <button class="btn" onclick="openDownloadModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download DB
+                </button>
+            </div>
         </header>
 
-        {% if error %}
-        <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem;">
-            {{ error }}
-        </div>
-        {% endif %}
-
-        <section class="stats-grid">
+        <section class="stats-grid" id="stats-grid">
             <div class="stat-card">
-                <div class="stat-value">{{ stats.majors }}</div>
+                <div class="stat-value" id="stat-majors">-</div>
                 <div class="stat-label">Majors</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{ stats.units }}</div>
+                <div class="stat-value" id="stat-units">-</div>
                 <div class="stat-label">Units</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{ stats.tasks }}</div>
+                <div class="stat-value" id="stat-tasks">-</div>
                 <div class="stat-label">Tasks</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{ stats.answers }}</div>
+                <div class="stat-value" id="stat-answers">-</div>
                 <div class="stat-label">Total Answers</div>
             </div>
         </section>
 
         <section class="data-explorer">
             <div class="section-title" style="padding: 1rem 1rem 0;">Data Explorer</div>
-            <div class="tree-view">
-                {% for major in tree %}
-                <details>
-                    <summary>{{ major.name }}</summary>
-                    {% for unit in major.units %}
-                    <details>
-                        <summary>{{ unit.name }}</summary>
-                        {% for task in unit.tasks %}
-                        <details>
-                            <summary>{{ task.name }}</summary>
-                            <div class="table-container">
-                                {% if task.answers %}
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Question</th>
-                                            <th>Answer</th>
-                                            <th>Option</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for answer in task.answers %}
-                                        <tr>
-                                            <td>{{ answer.questionNumber }}</td>
-                                            <td>{{ answer.question }}</td>
-                                            <td>{{ answer.answer }}</td>
-                                            <td>{{ answer.option }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                                {% else %}
-                                <div style="padding: 1rem; color: #64748b;">No answers logged for this task.</div>
-                                {% endif %}
-                            </div>
-                        </details>
-                        {% endfor %}
-                    </details>
-                    {% endfor %}
-                </details>
-                {% endfor %}
+            <div class="tree-view" id="tree-root">
+                <div style="padding: 1rem; color: #64748b;">Loading data...</div>
             </div>
+        </section>
+
+        <section class="comments-section">
+            <div class="community-box">
+                <div class="comments-header-row">
+                    <div class="section-title" style="margin-bottom:0;">Community Discussion</div>
+                    <div class="filter-controls">
+                        <button class="filter-btn active" data-sort="newest"
+                            onclick="changeSort('newest')">Newest</button>
+                        <button class="filter-btn" data-sort="oldest" onclick="changeSort('oldest')">Oldest</button>
+                        <button class="filter-btn" data-sort="popular" onclick="changeSort('popular')">Top
+                            Rated</button>
+                    </div>
+                </div>
+
+                <div class="comment-form">
+                    <div class="identity-display" id="identity-display">
+                        <!-- Loaded via JS -->
+                    </div>
+
+                    <div class="comment-input-wrapper"
+                        style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <div style="flex: 1; position: relative; display: flex; align-items: center;">
+                            <textarea id="main-comment-input" placeholder="What's on your mind?..." rows="1"
+                                style="width: 100%; border-radius: 20px; padding: 0.6rem 5rem 0.6rem 1rem; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); color: white; resize: none; min-height: 42px; line-height: 1.4; overflow-y: hidden;"></textarea>
+
+                            <!-- Image Upload Trigger -->
+                            <input type="file" id="main-image-input" accept="image/*" multiple style="display: none;"
+                                onchange="handleImageSelect(this, 'main-preview')">
+
+                            <button onclick="document.getElementById('main-image-input').click()"
+                                style="position: absolute; right: 40px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 4px; display: flex; align-items: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </button>
+
+                            <button onclick="postComment()" class="send-btn"
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #3b82f6; cursor: pointer; padding: 4px; display: flex; align-items: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" style="transform: rotate(45deg);">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview Container -->
+                    <div id="main-preview" class="image-preview-container"
+                        style="display: none; padding-left: 3rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                        <div style="position: relative; display: inline-block;">
+                            <img src=""
+                                style="max-height: 120px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: block;">
+                            <button onclick="clearImage('main-image-input', 'main-preview')"
+                                style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 24px; height: 24px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">&times;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comment-list" id="comments-list">
+                    <div id="loading-msg" style="text-align: center; color: #64748b;">Loading comments...</div>
+                </div>
+
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button id="load-more-btn" class="btn btn-secondary" onclick="loadMore()"
+                        style="display: none; width: 100%;">Load More Comments</button>
+                </div>
+            </div>
+
+            <!-- Logs Sidebar (New) -->
+            <div class="community-box" style="margin-top: 1rem; max-height: 400px; overflow-y: auto;">
+                <h3 class="section-title">DB Update Log</h3>
+                <div id="db-logs-content">
+                    <div style="color: #64748b; padding: 1rem;">Loading logs...</div>
+                </div>
+            </div>
+
         </section>
     </div>
 
+    <!-- Download Modal -->
     <div class="modal" id="downloadModal">
         <div class="modal-content">
             <h3 class="modal-title">Download Database</h3>
-            <form action="/download-db" method="POST">
+            <div id="download-error" style="color: #f87171; font-size: 0.875rem; margin-bottom: 1rem; display: none;">
+            </div>
+            <form id="downloadForm" onsubmit="handleDownload(event)">
                 <div class="input-group">
                     <label for="password" style="color: #94a3b8; font-size: 0.875rem;">Enter Admin Password</label>
-                    <input type="password" id="password" name="password" class="input-field" required placeholder="hint: admin123">
+                    <input type="password" id="password" name="password" class="input-field" required
+                        placeholder="hint: admin123">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeDownloadModal()">Cancel</button>
-                    <button type="submit" class="btn">Download</button>
+                    <button type="submit" class="btn" id="download-btn">Download</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Admin Login</h3>
+            <div id="login-error" style="color: #f87171; font-size: 0.875rem; margin-bottom: 1rem; display: none;">
+            </div>
+            <form onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <label style="color: #94a3b8; font-size: 0.875rem;">Password</label>
+                    <input type="password" id="login-password" class="input-field" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="document.getElementById('loginModal').classList.remove('active')">Cancel</button>
+                    <button type="submit" class="btn">Login</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        // --- Admin/Auth Logic Variables ---
+        // --- Admin/Auth Logic Variables ---
+        let isAdmin = false;
+        let adminToken = null;
+        let notifDropdownOpen = false;
+        let currentUser = { name: 'You', avatar: 'https://ui-avatars.com/api/?name=You&background=random' }; // Default
+
+        // --- Comments State ---
+        let currentPage = 1;
+        let currentSort = 'newest';
+        const LIMIT = 10;
+
+        // Initialize
+        fetchStats();
+        fetchMajors();
+        fetchComments();
+        checkAdminStatus();
+        fetchNotifications();
+
+        // --- Admin/Auth Logic ---
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.token;
+                    localStorage.setItem('adminToken', adminToken);
+                    isAdmin = true;
+                    document.getElementById('loginModal').classList.remove('active');
+                    updateIdentityDisplay();
+                    fetchNotifications();
+                    fetchComments();
+                } else {
+                    const data = await response.json();
+                    errorDiv.textContent = data.message || 'Login failed';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                console.error("Login error:", err);
+                errorDiv.textContent = 'Network error occurred';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        async function checkAdminStatus() {
+            adminToken = localStorage.getItem('adminToken');
+            if (adminToken) {
+                try {
+                    const response = await fetch('/api/verify_token', {
+                        headers: { 'Authorization': adminToken }
+                    });
+                    if (response.ok) {
+                        isAdmin = true;
+                    } else {
+                        isAdmin = false;
+                        localStorage.removeItem('adminToken');
+                        adminToken = null;
+                    }
+                } catch (error) {
+                    isAdmin = false;
+                    localStorage.removeItem('adminToken');
+                    adminToken = null;
+                }
+            }
+            updateIdentityDisplay();
+        }
+
+        function updateIdentityDisplay() {
+            const identityDiv = document.getElementById('identity-display');
+            if (isAdmin) {
+                currentUser = {
+                    name: 'Admin',
+                    avatar: 'https://ui-avatars.com/api/?name=Admin&background=EF4444&color=fff&bold=true' // Match Admin Badge Color
+                };
+                identityDiv.innerHTML = `
+                    <div class="admin-panel">
+                        <div class="admin-header">
+                             <div class="admin-badge">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                <span>Administrator</span>
+                             </div>
+                             <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+                        </div>
+                        <label class="admin-toggle">
+                            <input type="checkbox" id="post-as-admin-checkbox" checked>
+                            <div class="toggle-switch"></div>
+                            <span class="toggle-label">Post officially as Admin</span>
+                        </label>
+                    </div>
+                `;
+            } else {
+                // Fetch Identity
+                fetch('/api/identity')
+                    .then(r => r.json())
+                    .then(data => {
+                        currentUser = data; // Update global
+                        identityDiv.innerHTML = `
+                             <div class="identity-display">
+                                <img src="${data.avatar}" class="identity-avatar" alt="">
+                                <span>Posting as <strong style="color: var(--accent-color)">${escapeHtml(data.name)}</strong></span>
+                            </div>
+                        `;
+                    })
+                    .catch(console.error);
+            }
+        }
+
+        function logoutAdmin() {
+            isAdmin = false;
+            adminToken = null;
+            localStorage.removeItem('adminToken');
+            updateIdentityDisplay();
+            fetchComments();
+            fetchNotifications();
+        }
+
+        // --- Notification Logic ---
+        async function toggleNotifications() {
+            const dropdown = document.getElementById('notif-dropdown');
+            notifDropdownOpen = !notifDropdownOpen;
+
+            if (notifDropdownOpen) {
+                dropdown.classList.add('active');
+                // Mark all as read
+                try {
+                    await fetch('/api/notifications', { method: 'POST' });
+                    document.getElementById('notif-badge').style.display = 'none';
+                } catch (e) { console.error(e); }
+            } else {
+                dropdown.classList.remove('active');
+            }
+        }
+
+        // Helper for relative time
+        function timeAgo(dateString) {
+            const date = new Date(dateString.endsWith('Z') ? dateString : dateString + 'Z');
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + "y";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + "mo";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + "d";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + "h";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + "m";
+            return "Just now";
+        }
+
+        async function fetchNotifications() {
+            const badge = document.getElementById('notif-badge');
+            const dropdown = document.getElementById('notif-dropdown');
+
+            try {
+                const response = await fetch('/api/notifications');
+                if (response.ok) {
+                    const notifs = await response.json();
+
+                    const unreadCount = notifs.filter(n => !n.is_read).length;
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
+                    if (notifs.length === 0) {
+                        dropdown.innerHTML = '<div style="padding: 1rem; color: #94a3b8; text-align: center;">No notifications</div>';
+                    } else {
+                        dropdown.innerHTML = '';
+                        notifs.forEach(n => {
+                            const item = document.createElement('div');
+                            item.className = 'notif-item';
+                            if (!n.is_read) item.classList.add('unread');
+
+                            // Facebook-style layout
+                            const avatar = n.sender_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(n.sender_name || 'User')}&background=random`;
+                            item.innerHTML = `
+                                <img src="${avatar}" class="notif-avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+                                <div class="notif-content" style="flex: 1;">
+                                    <div class="notif-text" style="font-size: 0.9rem; margin-bottom: 2px;">
+                                        <strong>${escapeHtml(n.sender_name || 'Someone')}</strong> ${escapeHtml(n.action)}
+                                    </div>
+                                    <span class="notif-time" style="font-size: 0.75rem; color: #60A5FA;">${timeAgo(n.created_at)}</span>
+                                </div>
+                                ${!n.is_read ? '<div class="notif-dot" style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></div>' : ''}
+                            `;
+
+                            // Styling for item (inline for now to ensure overwrite, can be moved to CSS)
+                            item.style.display = 'flex';
+                            item.style.gap = '12px';
+                            item.style.alignItems = 'center';
+                            item.style.padding = '8px';
+                            item.style.cursor = 'pointer';
+                            // item.style.borderBottom = '1px solid rgba(255,255,255,0.05)'; // optional
+
+                            item.onclick = async () => {
+                                toggleNotifications();
+                                const targetId = n.ctx_link;
+
+                                // 1. Try Simple Selection
+                                let el = document.getElementById(`comment-${targetId}`);
+                                if (el) {
+                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    el.classList.add('highlight');
+                                    setTimeout(() => el.classList.remove('highlight'), 2000);
+                                    return;
+                                }
+
+                                // 2. Trace Path (Deep Link)
+                                try {
+                                    const pathRes = await fetch(`/api/comments/${targetId}/trace`);
+                                    if (!pathRes.ok) throw new Error("Comment trace failed");
+                                    const path = await pathRes.json(); // [RootId, ..., TargetId]
+
+                                    if (path.length === 0) return;
+
+                                    const rootId = path[0];
+
+                                    // Check & Load Root
+                                    if (!document.getElementById(`comment-${rootId}`)) {
+                                        const rootRes = await fetch(`/api/comments/${rootId}`);
+                                        if (rootRes.ok) {
+                                            const rootComment = await rootRes.json();
+                                            // Reset list or prepend? 
+                                            // Prepending means we mix context with current view. 
+                                            // Ideally we might clear list to focus, but prepending is less destructive.
+                                            // Using prepend.
+                                            const list = document.getElementById('comments-list');
+                                            list.insertBefore(createCommentElement(rootComment), list.firstChild);
+                                        }
+                                    }
+
+                                    // Expand Chain
+                                    for (const pid of path) {
+                                        if (pid === targetId) break;
+
+                                        // Wait for element to exist (if just loaded)
+                                        let wrapper = document.getElementById(`replies-${pid}`);
+                                        let attempts = 0;
+                                        while (!wrapper && attempts < 20) {
+                                            await new Promise(r => setTimeout(r, 50));
+                                            wrapper = document.getElementById(`replies-${pid}`);
+                                            attempts++;
+                                        }
+
+                                        if (wrapper && (wrapper.style.display === 'none' || wrapper.style.display === '')) {
+                                            await toggleReplies(pid);
+                                        }
+                                    }
+
+                                    // Final Scroll
+                                    setTimeout(() => {
+                                        const finalEl = document.getElementById(`comment-${targetId}`);
+                                        if (finalEl) {
+                                            finalEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            finalEl.classList.add('highlight');
+                                            setTimeout(() => finalEl.classList.remove('highlight'), 2000);
+                                        } else {
+                                            alert("Comment loaded but could not scroll to it.");
+                                        }
+                                    }, 200);
+
+                                } catch (e) {
+                                    console.error(e);
+                                    alert("Could not load comment context (deleted?).");
+                                }
+                            };
+                            dropdown.appendChild(item);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching notifications:", error);
+            }
+        }
+
+        setInterval(fetchNotifications, 30000);
+
+
+        // --- Modal Logic ---
         function openDownloadModal() {
             document.getElementById('downloadModal').classList.add('active');
+            document.getElementById('password').value = '';
+            document.getElementById('download-error').style.display = 'none';
         }
 
         function closeDownloadModal() {
             document.getElementById('downloadModal').classList.remove('active');
         }
 
-        // Close modal when clicking outside
-        document.getElementById('downloadModal').addEventListener('click', function(e) {
+        document.getElementById('downloadModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeDownloadModal();
             }
         });
+
+        // --- Download Logic ---
+        async function handleDownload(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('download-btn');
+            const errorDiv = document.getElementById('download-error');
+
+            btn.textContent = 'Downloading...';
+            btn.disabled = true;
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'database.db';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    closeDownloadModal();
+                } else {
+                    const data = await response.json();
+                    errorDiv.textContent = data.message || 'Download failed';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                errorDiv.textContent = 'Network error occurred';
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.textContent = 'Download';
+                btn.disabled = false;
+            }
+        }
+
+        // --- Stats & Tree Logic ---
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                document.getElementById('stat-majors').textContent = stats.majors;
+                document.getElementById('stat-units').textContent = stats.units;
+                document.getElementById('stat-tasks').textContent = stats.tasks;
+                document.getElementById('stat-answers').textContent = stats.answers;
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+            }
+            fetchDbLogs(); // Also fetch logs when fetching stats
+        }
+
+        let logPage = 1;
+
+        async function fetchDbLogs(append = false) {
+            if (!append) logPage = 1;
+            const container = document.getElementById('db-logs-content');
+            if (!container) return;
+            try {
+                const res = await fetch(`/api/logs/db_updates?page=${logPage}&limit=10`);
+                const logs = await res.json();
+
+                if (!append) {
+                    if (logs.length === 0) {
+                        container.innerHTML = '<div style="color: #64748b; font-size: 0.8rem;">No recent updates.</div>';
+                        return;
+                    }
+                    container.innerHTML = '';
+                    window.lastDesktopLogDate = '';
+                }
+
+                if (logs.length === 0 && append) {
+                    const btn = document.getElementById('load-more-logs-btn');
+                    if (btn) btn.style.display = 'none';
+                    return;
+                }
+
+                let html = '';
+                logs.forEach(log => {
+                    const dateObj = new Date(log.created_at.replace(' ', 'T'));
+                    const dateStr = dateObj.toLocaleDateString();
+
+                    let displayDate = dateStr;
+                    const today = new Date().toLocaleDateString();
+                    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
+
+                    if (dateStr === today) displayDate = 'Today';
+                    else if (dateStr === yesterday) displayDate = 'Yesterday';
+
+                    if (displayDate !== window.lastDesktopLogDate) {
+                        html += `<div style="font-weight: 600; color: #3b82f6; margin-top: 12px; margin-bottom: 4px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">${displayDate}</div>`;
+                        window.lastDesktopLogDate = displayDate;
+                    }
+
+                    html += `
+                        <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 6px 0;">
+                            <div style="font-size: 0.85rem; color: #e2e8f0;">${escapeHtml(log.message)}</div>
+                            <div style="font-size: 0.7rem; color: #64748b;">${log.created_at.split(' ')[1]}</div>
+                        </div>
+                    `;
+                });
+
+                const existingBtn = document.getElementById('load-more-logs-btn');
+                if (existingBtn) existingBtn.remove();
+
+                container.insertAdjacentHTML('beforeend', html);
+
+                if (logs.length === 10) {
+                    container.insertAdjacentHTML('beforeend', `
+                        <div id="load-more-logs-btn" onclick="logPage++; fetchDbLogs(true);" 
+                            style="text-align: center; padding: 8px; margin-top: 8px; color: #3b82f6; cursor: pointer; font-size: 0.75rem; border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: 4px; transition: all 0.2s;"
+                            onmouseover="this.style.background='rgba(59, 130, 246, 0.1)'" 
+                            onmouseout="this.style.background='transparent'">
+                            Show More Updates
+                        </div>
+                    `);
+                }
+            } catch (e) {
+                console.error("Error fetching logs", e);
+                container.innerHTML = '<div style="color: #ef4444;">Failed to load logs.</div>';
+            }
+        }
+
+        function formatLogTime(dateStr) {
+            if (!dateStr) return '';
+            // Backend returns UTC usually, or local. Assuming string is readable by Date parse
+            // If SQLite defaults CURRENT_TIMESTAMP it is UTC 'YYYY-MM-DD HH:MM:SS'
+            // We want to show it in local time or relative?
+            // Let's try to make it locale string
+            try {
+                // Append 'Z' if missing to treat as UTC if server is UTC-default (common in simple sqlite setups)
+                // But here python might write it differently?
+                // Let's just do simple Parse.
+                const d = new Date(dateStr.replace(' ', 'T') + 'Z');
+                // Note: 'Z' assumption is risky if server time is local. 
+                // Safe bet: just show the string as is if simple, or use simple formatter
+                return d.toLocaleString();
+            } catch { return dateStr; }
+        }
+
+        async function fetchMajors() {
+            const root = document.getElementById('tree-root');
+            root.innerHTML = '';
+            try {
+                const response = await fetch('/api/majors');
+                const majors = await response.json();
+
+                if (majors.length === 0) {
+                    root.innerHTML = '<div style="padding: 1rem; color: #64748b;">No data available.</div>';
+                    return;
+                }
+
+                majors.forEach(major => {
+                    let timeStr = major.updated_at ? `<span class="tree-time">Last: ${formatLogTime(major.updated_at)}</span>` : '';
+                    const label = `
+                        <div class="tree-item-row">
+                            <span class="tree-name">${escapeHtml(major.name)}</span>
+                            <span class="tree-badge">Counts: ${major.unit_count} / ${major.total_folders}</span>
+                            ${timeStr}
+                        </div>
+                    `;
+                    const details = createDetails(label, () => fetchUnits(major.id, details));
+                    root.appendChild(details);
+                });
+            } catch (error) {
+                console.error("Error fetching majors:", error);
+                root.innerHTML = '<div style="color: #ef4444; padding: 1rem;">Failed to load data.</div>';
+            }
+        }
+
+        async function fetchUnits(majorId, parentDetails) {
+            if (parentDetails.dataset.loaded === 'true') return;
+
+            const container = document.createElement('div');
+            container.style.paddingLeft = '1rem';
+            container.innerHTML = '<div style="color: #64748b; padding: 0.5rem;">Loading units...</div>';
+            parentDetails.appendChild(container);
+
+            try {
+                const response = await fetch(`/api/units/${majorId}`);
+                const units = await response.json();
+                container.innerHTML = '';
+
+                if (units.length === 0) {
+                    container.innerHTML = '<div style="color: #64748b; padding: 0.5rem;">No units found.</div>';
+                }
+
+                units.forEach(unit => {
+                    let timeStr = unit.updated_at ? `<span class="tree-time">Last: ${formatLogTime(unit.updated_at)}</span>` : '';
+                    const label = `
+                        <div class="tree-item-row">
+                            <span class="tree-name">${escapeHtml(unit.name)}</span>
+                            <span class="tree-badge">Tasks: ${unit.task_count}</span>
+                            ${timeStr}
+                        </div>
+                    `;
+                    const details = createDetails(label, () => fetchTasks(unit.id, details));
+                    container.appendChild(details);
+                });
+                parentDetails.dataset.loaded = 'true';
+            } catch (error) {
+                console.error("Error fetching units:", error);
+                container.innerHTML = '<div style="color: #ef4444; padding: 0.5rem;">Failed to load units.</div>';
+            }
+        }
+
+        async function fetchTasks(unitId, parentDetails) {
+            if (parentDetails.dataset.loaded === 'true') return;
+
+            const container = document.createElement('div');
+            container.style.paddingLeft = '1rem';
+            container.innerHTML = '<div style="color: #64748b; padding: 0.5rem;">Loading tasks...</div>';
+            parentDetails.appendChild(container);
+
+            try {
+                const response = await fetch(`/api/tasks/${unitId}`);
+                const tasks = await response.json();
+                container.innerHTML = '';
+
+                if (tasks.length === 0) {
+                    container.innerHTML = '<div style="color: #64748b; padding: 0.5rem;">No tasks found.</div>';
+                }
+
+                tasks.forEach(task => {
+                    let timeStr = task.updated_at ? `<span class="tree-time">Last: ${formatLogTime(task.updated_at)}</span>` : '';
+                    const label = `
+                        <div class="tree-item-row">
+                            <span class="tree-name">${escapeHtml(task.name)}</span>
+                            ${timeStr}
+                        </div>
+                    `;
+                    const details = createDetails(label, () => fetchAnswers(task.id, details));
+                    container.appendChild(details);
+                });
+                parentDetails.dataset.loaded = 'true';
+            } catch (error) {
+                console.error("Error fetching tasks:", error);
+                container.innerHTML = '<div style="color: #ef4444; padding: 0.5rem;">Failed to load tasks.</div>';
+            }
+        }
+
+        async function fetchAnswers(taskId, parentDetails) {
+            if (parentDetails.dataset.loaded === 'true') return;
+
+            const container = document.createElement('div');
+            container.className = 'table-container';
+            container.innerHTML = '<div style="color: #64748b; padding: 0.5rem;">Loading answers...</div>';
+            parentDetails.appendChild(container);
+
+            try {
+                const response = await fetch(`/api/answers/${taskId}`);
+                const answers = await response.json();
+                container.innerHTML = '';
+
+                if (answers.length > 0) {
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Question</th>
+                                <th>Answer</th>
+                                <th>Option</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${answers.map(ans => `
+                                <tr>
+                                    <td>${escapeHtml(ans.questionNumber)}</td>
+                                    <td>${escapeHtml(ans.question)}</td>
+                                    <td>${escapeHtml(ans.answer)}</td>
+                                    <td>${escapeHtml(ans.option)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    container.appendChild(table);
+                } else {
+                    container.innerHTML = '<div style="padding: 1rem; color: #64748b;">No answers logged for this task.</div>';
+                }
+                parentDetails.dataset.loaded = 'true';
+            } catch (error) {
+                console.error("Error fetching answers:", error);
+                container.innerHTML = '<div style="color: #ef4444; padding: 0.5rem;">Failed to load answers.</div>';
+            }
+        }
+
+        function createDetails(htmlContent, onToggleCallback) {
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.innerHTML = htmlContent;
+            summary.style.display = 'flex';
+            summary.style.alignItems = 'center';
+            // Note: summary display:flex might break the marker in some browsers, but we can fix with CSS if needed. 
+            // Better to keep default display but put content in a span.
+            // Actually, let's keep it simple: summary can have children.
+            // But to make flex work inside summary nicely, we often wrap content in a div/span inside summary
+            // summary content
+
+            // Let's reset summary style and just use innerHTML. 
+            // The caller is responsible for the flex layout inside a wrapper if needed, 
+            // OR we apply a class to summary content. 
+            // Let's assume htmlContent is everything inside summary.
+            details.appendChild(summary);
+
+            // One-time listener for lazy load
+            const onToggle = (e) => {
+                if (details.open) {
+                    onToggleCallback();
+                }
+            };
+
+            details.addEventListener('toggle', onToggle);
+            return details;
+        }
+
+        // --- Comments Logic ---
+
+        // --- Comments Logic ---
+
+
+        async function fetchComments(reset = false) {
+            const list = document.getElementById('comments-list');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+
+            if (reset) {
+                currentPage = 1;
+                list.innerHTML = '';
+                list.innerHTML = '<div id="loading-msg" style="text-align: center; color: #64748b;">Loading comments...</div>';
+            }
+
+            try {
+                const response = await fetch(`/api/comments?page=${currentPage}&limit=${LIMIT}&sort=${currentSort}`);
+                const data = await response.json();
+
+                // Clear loading msg
+                const loadingMsg = document.getElementById('loading-msg');
+                if (loadingMsg) loadingMsg.remove();
+
+                if (data.comments.length === 0 && currentPage === 1) {
+                    list.innerHTML = '<div style="text-align: center; color: #64748b; padding: 2rem;">No comments yet. Be the first!</div>';
+                    loadMoreBtn.style.display = 'none';
+                    return;
+                }
+
+                // Backend now returns paginated roots with children nested.
+                // We just need to render the roots.
+                data.comments.forEach(c => {
+                    if (!document.getElementById(`comment-${c.id}`)) {
+                        list.appendChild(createCommentElement(c));
+                    }
+                });
+
+                // Load More Logic
+                if (data.has_more) {
+                    loadMoreBtn.style.display = 'block';
+                } else {
+                    loadMoreBtn.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error("Error fetching comments:", error);
+                if (reset) list.innerHTML = '<div style="color: #ef4444; text-align: center;">Failed to load comments.</div>';
+            }
+        }
+
+        function loadMore() {
+            currentPage++;
+            fetchComments(false);
+        }
+
+        function changeSort(sort) {
+            currentSort = sort;
+            // Update active button style
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.sort === sort) btn.classList.add('active');
+            });
+            fetchComments(true);
+        }
+
+
+
+
+
+
+        function createCommentElement(comment) {
+            const div = document.createElement('div');
+            div.className = 'comment-container';
+            div.id = `comment-${comment.id}`;
+
+            const likeActive = comment.user_reactions && comment.user_reactions.includes('like') ? 'active' : '';
+
+            const defaultAvatar = comment.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author_name)}&background=random`;
+
+            // Calculate total reactions for the floating bubble
+            // Calculate total reactions for the floating bubble
+            const totalReactions = (comment.reactions.like || 0);
+            let reactionFloatHtml = '';
+            if (totalReactions > 0) {
+                let iconsHtml = '';
+                // Like Icon
+                if (comment.reactions['like'] > 0) {
+                    iconsHtml += `
+                        <div class="reaction-icon-float reaction-type-like" style="margin-right: 6px;">
+                            <svg class="reaction-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                            </svg>
+                            <span class="reaction-count-float">${comment.reactions['like']}</span>
+                        </div>`;
+                }
+
+                reactionFloatHtml = `
+                    <div class="comment-reactions-float" id="reaction-bubble-${comment.id}">
+                        ${iconsHtml}
+                    </div>
+                `;
+            }
+
+            // Image HTML (Multiple)
+            let imageHtml = '';
+            if (comment.images && comment.images.length > 0) {
+                imageHtml = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.5rem;">';
+                comment.images.forEach(src => {
+                    imageHtml += `<img src="${src}" class="comment-content-image" onclick="openImageViewer('${src}')" style="height: 80px; width: auto; border-radius: 8px; cursor: pointer; object-fit: cover; border: 1px solid rgba(255,255,255,0.1);">`;
+                });
+                imageHtml += '</div>';
+            } else if (comment.image_path) { // Legacy fallback
+                imageHtml = `<div style="margin-top: 0.5rem;"><img src="${comment.image_path}" class="comment-content-image" onclick="openImageViewer('${comment.image_path}')" style="height: 80px; width: auto; border-radius: 8px; cursor: pointer; object-fit: cover; border: 1px solid rgba(255,255,255,0.1);"></div>`;
+            }
+
+            // Replies Logic
+            let replyTriggerHtml = '';
+            const hasReplies = (comment.children && comment.children.length > 0) || (comment.reply_count && comment.reply_count > 0);
+
+            if (hasReplies) {
+                const replyCount = comment.reply_count || comment.children.length;
+
+                let avatars = [];
+                if (comment.preview_replies) {
+                    avatars = comment.preview_replies.map(c => c.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.author_name)}&background=random`);
+                } else if (comment.children) {
+                    avatars = comment.children.slice(0, 3).map(c => c.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.author_name)}&background=random`);
+                }
+
+                let avatarsHtml = '';
+                avatars.forEach(av => {
+                    avatarsHtml += `<img src="${av}" class="reply-avatar-mini">`;
+                });
+
+                replyTriggerHtml = `
+                    <div class="view-replies-trigger" id="reply-trigger-${comment.id}" onclick="toggleReplies('${comment.id}')">
+                        <div style="display: flex; align-items: center;">
+                            ${avatarsHtml}
+                        </div>
+                        <span class="view-replies-text">View all ${replyCount} replies</span>
+                    </div>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="comment-row">
+                    <img src="${defaultAvatar}" class="comment-avatar" alt="${escapeHtml(comment.author_name)}">
+                    <div class="comment-content-group">
+                        <div class="comment-bubble-wrapper">
+                            <div class="comment-bubble">
+                                <div class="comment-author">${escapeHtml(comment.author_name)}</div>
+                                <div class="comment-text">${escapeHtml(comment.content)}</div>
+                                ${imageHtml}
+                                ${reactionFloatHtml}
+                            </div>
+                        </div>
+
+                        <div class="comment-actions-line">
+                            <span class="comment-time">${formatDate(comment.created_at)}</span>
+                            <button class="action-link ${likeActive ? 'active-like' : ''}" onclick="handleReaction('${comment.id}', 'like', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                </svg>
+                                Like
+                            </button>
+                            ${!comment.parent_id ? `<button class="action-link" onclick="toggleReplyForm('${comment.id}')">Reply</button>` : ''}
+                            ${(isAdmin || comment.author_ip === 'You') ? `<button class="action-link delete-link" onclick="deleteComment('${comment.id}')">Delete</button>` : ''}
+                        </div>
+                        
+                        <div class="reply-form" id="reply-form-${comment.id}">
+                             <div class="comment-input-wrapper" style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.5rem;">
+                                <img src="${currentUser.avatar}" class="comment-avatar" style="width: 32px; height: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                <div style="flex: 1; position: relative; display: flex; flex-direction: column;">
+                                    <div style="position: relative; width: 100%; display: flex; align-items: center;">
+                                        <textarea id="reply-input-${comment.id}" placeholder="Write a reply..." rows="1" 
+                                            style="width: 100%; border-radius: 20px; padding: 0.6rem 5rem 0.6rem 1rem; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); color: white; resize: none; min-height: 38px; height: 38px; line-height: 1.4; overflow-y: hidden;"></textarea>
+                                        
+                                        <!-- Image Upload Trigger Reply -->
+                                        <input type="file" id="reply-image-input-${comment.id}" accept="image/*" multiple style="display: none;" onchange="handleImageSelect(this, 'reply-preview-${comment.id}')">
+                                        
+                                        <button onclick="document.getElementById('reply-image-input-${comment.id}').click()" style="position: absolute; right: 40px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 4px; display: flex; align-items: center;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                        </button>
+
+                                        <button onclick="postReply('${comment.id}')" class="send-btn" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #3b82f6; cursor: pointer; padding: 4px; display: flex; align-items: center;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(45deg);"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                        </button>
+                                    </div>
+                                    
+                                     <!-- Image Preview Container Reply -->
+                                    <div id="reply-preview-${comment.id}" class="image-preview-container" style="display: none; margin-top: 0.5rem;">
+                                        <div class="preview-grid" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                                        <button onclick="clearImage('reply-image-input-${comment.id}', 'reply-preview-${comment.id}')" style="margin-top: 5px; font-size: 0.8rem; color: #ef4444; border:none; background:none; cursor:pointer;">Clear Images</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${replyTriggerHtml}
+                        <div class="replies-wrapper" id="replies-${comment.id}" style="display: none;"></div>
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        async function toggleReplies(commentId) {
+            const wrapper = document.getElementById(`replies-${commentId}`);
+            const trigger = document.getElementById(`reply-trigger-${commentId}`);
+
+            if (wrapper.style.display === 'none' || wrapper.style.display === '') {
+                // Expanding
+                wrapper.style.display = 'block';
+
+                // If empty, fetch from API
+                if (wrapper.children.length === 0) {
+                    const spinner = document.createElement('div');
+                    spinner.id = `loading-replies-${commentId}`;
+                    spinner.textContent = 'Loading replies...';
+                    spinner.style.fontSize = '0.8rem';
+                    spinner.style.color = '#64748b';
+                    spinner.style.padding = '0.5rem';
+                    wrapper.appendChild(spinner);
+
+                    try {
+                        const res = await fetch(`/api/comments/${commentId}/replies`);
+                        if (!res.ok) throw new Error("Failed");
+                        const replies = await res.json();
+
+                        wrapper.removeChild(spinner);
+
+                        replies.forEach(reply => {
+                            const replyEl = createCommentElement(reply);
+                            wrapper.appendChild(replyEl);
+                        });
+                    } catch (e) {
+                        console.error(e);
+                        spinner.textContent = 'Failed to load replies.';
+                    }
+                }
+
+                trigger.style.display = 'none';
+            } else {
+                // Collapsing
+                wrapper.style.display = 'none';
+                trigger.style.display = 'flex';
+            }
+        }
+
+        // --- Image Handling & Upload Logic ---
+
+        const selectedFilesMap = {}; // Stores arrays of File objects keyed by input ID
+
+        function handleImageSelect(input, previewId) {
+            const inputId = input.id;
+
+            if (!selectedFilesMap[inputId]) {
+                selectedFilesMap[inputId] = [];
+            }
+
+            if (input.files && input.files.length > 0) {
+                // Append new files
+                Array.from(input.files).forEach(file => {
+                    selectedFilesMap[inputId].push(file);
+                });
+
+                // Clear input value to allow selecting same file again if needed
+                input.value = '';
+            }
+
+            renderPreview(inputId, previewId);
+        }
+
+        function renderPreview(inputId, previewId) {
+            const previewContainer = document.getElementById(previewId);
+            const files = selectedFilesMap[inputId] || [];
+
+            if (files.length === 0) {
+                previewContainer.style.display = 'none';
+                previewContainer.innerHTML = '';
+                return;
+            }
+
+            previewContainer.style.display = 'block';
+            previewContainer.innerHTML = ''; // Start fresh
+
+            const grid = document.createElement('div');
+            grid.style.display = 'flex';
+            grid.style.gap = '8px';
+            grid.style.flexWrap = 'wrap';
+
+            files.forEach((file, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.height = '60px';
+                    img.style.borderRadius = '6px';
+                    img.style.border = '1px solid rgba(255,255,255,0.1)';
+                    img.style.display = 'block';
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.style.position = 'absolute';
+                    removeBtn.style.top = '-6px';
+                    removeBtn.style.right = '-6px';
+                    removeBtn.style.background = '#ef4444';
+                    removeBtn.style.color = 'white';
+                    removeBtn.style.borderRadius = '50%';
+                    removeBtn.style.width = '18px';
+                    removeBtn.style.height = '18px';
+                    removeBtn.style.border = 'none';
+                    removeBtn.style.cursor = 'pointer';
+                    removeBtn.style.display = 'flex';
+                    removeBtn.style.alignItems = 'center';
+                    removeBtn.style.justifyContent = 'center';
+                    removeBtn.style.fontSize = '12px';
+                    removeBtn.style.lineHeight = '1';
+                    removeBtn.onclick = () => removeFile(inputId, index, previewId);
+
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(removeBtn);
+                    grid.appendChild(wrapper);
+                }
+                reader.readAsDataURL(file);
+            });
+
+            previewContainer.appendChild(grid);
+        }
+
+        function removeFile(inputId, index, previewId) {
+            if (selectedFilesMap[inputId]) {
+                selectedFilesMap[inputId].splice(index, 1);
+                renderPreview(inputId, previewId);
+            }
+        }
+
+        function clearFiles(inputId, previewId) {
+            selectedFilesMap[inputId] = [];
+            renderPreview(inputId, previewId);
+            const input = document.getElementById(inputId);
+            if (input) input.value = '';
+        }
+
+        async function postComment() {
+            const input = document.getElementById('main-comment-input');
+            const content = input.value.trim();
+            const asAdminCheckbox = document.getElementById('post-as-admin-checkbox');
+            const asAdmin = asAdminCheckbox ? asAdminCheckbox.checked : false;
+
+            const fileKey = 'main-image-input';
+            const files = selectedFilesMap[fileKey] || [];
+
+            if (!content && files.length === 0) return;
+
+            const formData = new FormData();
+            formData.append('content', content);
+            formData.append('as_admin', asAdmin);
+
+            files.forEach(file => {
+                formData.append('images', file);
+            });
+
+            const headers = {};
+            if (asAdmin && adminToken) {
+                headers['Authorization'] = `Bearer ${adminToken}`;
+            }
+
+            try {
+                const response = await fetch('/api/comments', {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                });
+
+                if (response.ok) {
+                    input.value = '';
+                    clearFiles(fileKey, 'main-preview');
+                    fetchComments(true);
+                } else {
+                    const err = await response.json();
+                    alert(err.error || "Failed to post comment");
+                }
+            } catch (error) {
+                console.error("Error posting comment:", error);
+            }
+        }
+
+        async function postReply(parentId) {
+            const input = document.getElementById(`reply-input-${parentId}`);
+            const content = input ? input.value.trim() : "";
+
+            const fileKey = `reply-image-input-${parentId}`;
+            const files = selectedFilesMap[fileKey] || [];
+
+            if (!input) return; // Safety
+
+            if (!content && files.length === 0) return;
+
+            const asAdminCheckbox = document.getElementById('post-as-admin-checkbox');
+            const asAdmin = asAdminCheckbox ? asAdminCheckbox.checked : false;
+
+            const formData = new FormData();
+            formData.append('content', content);
+            formData.append('parent_id', parentId);
+            formData.append('as_admin', asAdmin);
+
+            files.forEach(file => {
+                formData.append('images', file);
+            });
+
+            const headers = {};
+            if (asAdmin && adminToken) {
+                headers['Authorization'] = `Bearer ${adminToken}`;
+            }
+
+            try {
+                const response = await fetch('/api/comments', {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                });
+
+                if (response.ok) {
+                    input.value = '';
+                    clearFiles(fileKey, `reply-preview-${parentId}`);
+                    toggleReplyForm(parentId);
+                    fetchComments(true);
+                } else {
+                    const err = await response.json();
+                    alert(err.error || "Failed to post reply");
+                }
+            } catch (error) {
+                console.error("Error posting reply:", error);
+            }
+        }
+
+        async function deleteComment(commentId) {
+            if (!confirm("Are you sure you want to delete this comment?")) return;
+            if (!adminToken) { alert("Admin only"); return; }
+            try {
+                const response = await fetch(`/api/comments/${commentId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                if (response.ok) fetchComments(true);
+            } catch (error) { console.error(error); }
+        }
+
+        function toggleReplyForm(id) {
+            const form = document.getElementById(`reply-form-${id}`);
+            form.classList.toggle('active');
+            if (form.classList.contains('active')) {
+                form.querySelector('textarea').focus();
+            }
+        }
+
+
+
+        async function handleReaction(commentId, type, btn) {
+            // Optimistic UI Update
+            const activeClass = 'active-like';
+
+            // Toggle active state on button
+            const wasActive = btn.classList.contains(activeClass);
+            btn.classList.toggle(activeClass);
+
+            // Note: We don't forcefully untoggle the other type here to avoid complex DOM logic, 
+            // relying on fetchComments(true) eventual consistency or assuming backend handles it.
+            // But visually, if I click Like, Heart should theoretically toggle off.
+            // Let's keep it simple: Just toggle current.
+
+            // Update Floating Bubble
+            const bubbleId = `reaction-bubble-${commentId}`;
+            let bubble = document.getElementById(bubbleId);
+            const bubbleWrapper = document.querySelector(`#comment-${commentId} .comment-bubble .comment-reactions-float`);
+            // Wait, previous code put ID on the bubble div itself.
+
+            // If bubble completely missing (count was 0)
+            if (!bubble) {
+                // We need to inject it into .comment-bubble
+                // Find .comment-bubble
+                const container = document.querySelector(`#comment-${commentId} .comment-bubble`);
+                if (container && !wasActive) { // Only create if we are ADDING
+                    bubble = document.createElement('div');
+                    bubble.className = "comment-reactions-float";
+                    bubble.id = bubbleId;
+                    container.appendChild(bubble);
+                }
+            }
+
+            if (bubble) {
+                // Find specific type container
+                let typeContainer = bubble.querySelector(`.reaction-type-${type}`);
+
+                // Change: +1 if activating, -1 if deactivating
+                const change = wasActive ? -1 : 1;
+
+                if (typeContainer) {
+                    const countSpan = typeContainer.querySelector('.reaction-count-float');
+                    let newCount = parseInt(countSpan.textContent) + change;
+                    if (newCount <= 0) {
+                        typeContainer.remove();
+                    } else {
+                        countSpan.textContent = newCount;
+                    }
+                } else if (!wasActive) {
+                    // Adding new reaction type
+                    // Since we only have 'like' now, hardcode the path for Like
+                    const svgPath = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />';
+
+
+
+                    const newItem = document.createElement('div');
+                    newItem.className = `reaction-icon-float reaction-type-${type}`;
+                    newItem.style.marginRight = "6px";
+                    newItem.innerHTML = `
+                         <svg class="reaction-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">${svgPath}</svg>
+                         <span class="reaction-count-float">1</span>
+                    `;
+                    bubble.appendChild(newItem);
+                }
+
+                if (bubble.children.length === 0) {
+                    bubble.remove();
+                }
+            }
+
+            try {
+                const response = await fetch(`/api/comments/${commentId}/react`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: type })
+                });
+
+                if (!response.ok) {
+                    // Revert or reload
+                    fetchComments(true);
+                } else {
+                    // Animation effect
+                    if (!wasActive) {
+                        const svg = btn.querySelector('svg');
+                        if (svg) {
+                            svg.style.transform = 'scale(1.4)';
+                            setTimeout(() => svg.style.transform = 'scale(1)', 200);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Reaction error:", error);
+            }
+        }
+
+
+        function formatDate(dateStr) {
+            if (dateStr === "Just now") return dateStr;
+            const date = new Date(dateStr);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Image Viewer with Zoom
+        let currentZoom = 1;
+        let isPanning = false;
+        let startX, startY, translateX = 0, translateY = 0;
+
+        function openImageViewer(src) {
+            const modal = document.getElementById('image-viewer-modal');
+            const img = document.getElementById('image-viewer-img');
+            img.src = src;
+            modal.style.display = 'block';
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateImageTransform();
+        }
+
+        function closeImageViewer() {
+            document.getElementById('image-viewer-modal').style.display = 'none';
+        }
+
+        function zoomImage(delta) {
+            currentZoom = Math.max(0.5, Math.min(5, currentZoom + delta));
+            updateImageTransform();
+        }
+
+        function updateImageTransform() {
+            const img = document.getElementById('image-viewer-img');
+            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
+        }
+
+        // Pan functionality
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('image-viewer-container');
+
+            container.addEventListener('mousedown', (e) => {
+                if (currentZoom > 1) {
+                    isPanning = true;
+                    startX = e.clientX - translateX;
+                    startY = e.clientY - translateY;
+                    container.style.cursor = 'grabbing';
+                }
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                if (isPanning) {
+                    translateX = e.clientX - startX;
+                    translateY = e.clientY - startY;
+                    updateImageTransform();
+                }
+            });
+
+            container.addEventListener('mouseup', () => {
+                isPanning = false;
+                container.style.cursor = 'grab';
+            });
+
+            container.addEventListener('mouseleave', () => {
+                if (isPanning) {
+                    isPanning = false;
+                    container.style.cursor = 'grab';
+                }
+            });
+        });
     </script>
+
+    <!-- Image Viewer Modal -->
+    <div id="image-viewer-modal"
+        style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 10000; overflow: hidden;">
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 10001; display: flex; gap: 12px;">
+            <button onclick="zoomImage(-0.2)"
+                style="background: rgba(255,255,255,0.2); border: none; color: white; width: 50px; height: 50px; border-radius: 8px; font-size: 28px; cursor: pointer; font-weight: bold;">−</button>
+            <button onclick="zoomImage(0.2)"
+                style="background: rgba(255,255,255,0.2); border: none; color: white; width: 50px; height: 50px; border-radius: 8px; font-size: 28px; cursor: pointer; font-weight: bold;">+</button>
+            <button onclick="closeImageViewer()"
+                style="background: rgba(255,255,255,0.2); border: none; color: white; width: 50px; height: 50px; border-radius: 8px; font-size: 28px; cursor: pointer; font-weight: bold;">×</button>
+        </div>
+        <div id="image-viewer-container"
+            style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: grab;">
+            <img id="image-viewer-img" src=""
+                style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s; user-select: none;">
+        </div>
+    </div>
 </body>
+
 </html>

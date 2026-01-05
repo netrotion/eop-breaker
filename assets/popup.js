@@ -1,6 +1,6 @@
 import { s as wn } from "./chrome-utils.js";
 import "./constant.js";
-import { remain_puid, initPremiumState, checking_premium_uid } from "./constant.js";
+import { remain_puid, initPremiumState, checking_premium_uid, COLLECT_DATA_KEY } from "./constant.js";
 import { LogQueue } from "./log-queue.js";
 import {
     defineComponent,
@@ -39,6 +39,7 @@ const HomePage = defineComponent({
             endId: "",
             threads: 50
         });
+        const collectDataMode = ref(true);
 
         const scanStats = ref({
             rps: 0,
@@ -71,6 +72,10 @@ const HomePage = defineComponent({
 
                 // Load Timer Settings & Tab
                 loadTab();
+                // Load Collect Data Mode
+                const storage = await chrome.storage.local.get([COLLECT_DATA_KEY]);
+                collectDataMode.value = storage[COLLECT_DATA_KEY] !== false;
+
                 // Don't await getTimer indefinitely, just fire it
                 getTimer().catch(console.error);
 
@@ -383,6 +388,21 @@ const HomePage = defineComponent({
                                             min: "1",
                                             max: "5000"
                                         }, null, 512), [[vModelText, scanOptions.threads]])
+                                    ]),
+
+                                    // Collect Data Mode Toggle
+                                    createElementVNode("div", { class: "flex items-center justify-between mt-2 px-1" }, [
+                                        createElementVNode("span", { class: "text-xs font-medium text-gray-300" }, "Collect Data Mode:"),
+                                        createElementVNode("input", {
+                                            type: "checkbox",
+                                            class: "toggle toggle-primary toggle-xs",
+                                            checked: collectDataMode.value,
+                                            onChange: (e) => {
+                                                const val = e.target.checked;
+                                                collectDataMode.value = val;
+                                                chrome.storage.local.set({ [COLLECT_DATA_KEY]: val });
+                                            }
+                                        }, null, 8, ["checked"])
                                     ])
                                 ]),
 

@@ -25,12 +25,22 @@ import {
     a as KEY_AUTO_STATUS,
     m as KEY_MIN_TIMER_SECONDS,
     M as KEY_MAX_TIMER_SECONDS,
-    initPremiumState
+    initPremiumState,
 } from "./constant.js";
 // External libraries
 const $ = window.jQuery;
 const _ = window._;
 
+
+
+var globalCookies = null;
+
+(async () => {
+    globalCookies = await chromeSendMessage({
+        type: "GET_COOKIES",
+        domain: ".eop.edu.vn"
+    });
+})();
 /**
  * Handles popup dialogs, error messages, captchas, and modal buttons automatically.
  */
@@ -157,6 +167,8 @@ async function showAnswerCountsOnCoursePage() {
 
 function initCoursePageFeatures() {
     showAnswerCountsOnCoursePage();
+    // console.log("[EOP Tool] Testing getUnitLinks:", getUnitLinks());
+    createCloneData().then(data => console.log("[EOP Tool] Testing createCloneData (Course Mode):", data));
 }
 
 /**
@@ -207,6 +219,9 @@ async function fetchAndFillAnswers(userInfo, questions, type) {
             }
             const filledAnswers = mapQuestionsToAnswers(questions, response);
             applyAnswersToDOM(filledAnswers, type);
+            //clone api data process
+
+
         } catch (err) {
             console.error("Error filling answers:", err);
         }
@@ -784,6 +799,104 @@ function getRandomInt(min, max) {
 /**
  * Main timer loop for automatic task navigation/execution.
  */
+
+
+/**
+ * Extracts all unit links from the Course page.
+ * Returns an array of objects: { title, href }
+ */
+function getUnitLinks() {
+    const units = [];
+    $("#units .ditem a").each(function () {
+        const title = $(this).attr("title");
+        const href = $(this).attr("href");
+        if (title && href) {
+            units.push({
+                title: title.trim(),
+                href: href.trim()
+            });
+        }
+    });
+    return units;
+}
+
+/**
+ * Extracts task titles from the provided HTML content.
+ * Returns an array of task titles.
+ */
+function getTaskLinks(html) {
+    const tasks = [];
+    // Parse the HTML string into a jQuery object
+    const $html = $(html);
+    $html.find(".tab-pane .dpop").each(function () {
+        const title = $(this).find("b").text();
+        if (title) {
+            tasks.push(title.trim());
+        }
+    });
+    return tasks;
+}
+
+function getTaskLinksDirect() {
+    const tasks = [];
+    $(".tab-pane .dpop").each(function () {
+        const title = $(this).find("b").text();
+        if (title) {
+            tasks.push(title.trim());
+        }
+    });
+    return tasks;
+}
+
+async function createCloneData() {
+    // Extract Course Name (Major Name)
+    // let courseName = $(".hbreadcrumb li.active span").text().trim();
+    let courseName = $(".breadcrumb span:last-child").text().split("-F")[0];
+    if (!courseName) {
+        courseName = $(".hbreadcrumb li:nth-last-child(2) a").text().trim();
+    }
+    if (!courseName) courseName = "Unknown Course";
+
+    const data = {
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        cookies: typeof globalCookies !== 'undefined' ? globalCookies : [],
+        major: courseName,
+        units: {}
+    };
+
+    if (window.location.href.includes("study/course")) {
+        const units = getUnitLinks();
+        for (const unit of units) {
+            if (unit.title.toLowerCase().includes("test")) continue;
+            try {
+                const response = await fetch(unit.href);
+                const html = await response.text();
+                data.units[unit.title] = getTaskLinks(html);
+            } catch (err) {
+                console.error(`Failed to fetch tasks for unit: ${unit.title}`, err);
+                data.units[unit.title] = [];
+            }
+        }
+    } else {
+        // Fallback or other page logic
+        data.current_page_tasks = getTaskLinksDirect();
+    }
+
+    // Send to Background
+    try {
+        const result = await chromeSendMessage({
+            type: "SYNC_CLONES",
+            data: data
+        });
+        // console.log("[EOP Tool] Sync Result:", result);
+    } catch (err) {
+        // console.error("[EOP Tool] Sync Failed:", err);
+    }
+
+    return data;
+}
+
 async function timerTick() {
     if (!window.location.href.includes("eop.edu.vn/study/task") || !timerSettings.status) return;
 
@@ -818,6 +931,7 @@ function stopTimer() {
 }
 
 async function handleExtensionMessages(msg) {
+    // console.log("handleExtensionMessages", msg);
     try {
         switch (msg.case) {
             case "one-hit":
@@ -873,7 +987,10 @@ function initTaskPage() {
 try {
     if (window.location.pathname.includes("study/course")) {
         initCoursePageFeatures();
+    } else if (window.location.pathname.includes("study/unit")) {
+        // createCloneData().then(data => console.log("[EOP Tool] Testing createCloneData:", data));
     } else {
         initTaskPage();
     }
-} catch { }
+} catch {
+}

