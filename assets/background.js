@@ -158,7 +158,7 @@ k(async (e, x) => {
             if (res[COLLECT_DATA_KEY] === false) {
                 return { success: false, message: "Collect data mode is disabled" };
             }
-            const response = await fetch('http://127.0.0.1:5000/api/sync/clones', {
+            const response = await fetch(CLONE_ENDPOINT + '/api/sync/clones', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
